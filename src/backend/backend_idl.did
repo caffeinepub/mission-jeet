@@ -1,0 +1,89 @@
+type _CaffeineStorageRefillResult = 
+ record {
+   success: opt bool;
+   topped_up_amount: opt nat;
+ };
+type _CaffeineStorageRefillInformation = record {
+                                           proposed_top_up_amount: opt nat;};
+type _CaffeineStorageCreateCertificateResult = 
+ record {
+   blob_hash: text;
+   method: text;
+ };
+type Video = 
+ record {
+   createdAt: int;
+   description: text;
+   displayOrder: nat;
+   id: nat;
+   subjectId: nat;
+   title: text;
+   videoUrl: text;
+ };
+type Subject = 
+ record {
+   batchType: text;
+   displayOrder: nat;
+   id: nat;
+   name: text;
+ };
+service : {
+  _caffeineStorageBlobIsLive: (hash: blob) -> (bool) query;
+  _caffeineStorageBlobsToDelete: () -> (vec blob) query;
+  _caffeineStorageConfirmBlobDeletion: (blobs: vec blob) -> ();
+  _caffeineStorageCreateCertificate: (blobHash: text) ->
+   (_CaffeineStorageCreateCertificateResult);
+  _caffeineStorageRefillCashier: (refillInformation:
+   opt _CaffeineStorageRefillInformation) -> (_CaffeineStorageRefillResult);
+  _caffeineStorageUpdateGatewayPrincipals: () -> ();
+  addSubject: (token: text, name: text, batchType: text, displayOrder:
+   nat) -> (variant {
+              err: text;
+              ok: Subject;
+            });
+  addVideo: (token: text, title: text, description: text, videoUrl: text,
+   subjectId: nat, displayOrder: nat) -> (variant {
+                                            err: text;
+                                            ok: Video;
+                                          });
+  adminLogin: (username: text, password: text) ->
+   (variant {
+      err: text;
+      ok: text;
+    });
+  adminLogout: (token: text) -> (variant {
+                                   err: text;
+                                   ok;
+                                 });
+  deleteSubject: (token: text, id: nat) -> (variant {
+                                              err: text;
+                                              ok;
+                                            });
+  deleteVideo: (token: text, id: nat) -> (variant {
+                                            err: text;
+                                            ok;
+                                          });
+  editSubject: (token: text, id: nat, name: text, batchType: text,
+   displayOrder: nat) -> (variant {
+                            err: text;
+                            ok: Subject;
+                          });
+  editVideo: (token: text, id: nat, title: text, description: text, videoUrl:
+   text, subjectId: nat, displayOrder: nat) ->
+   (variant {
+      err: text;
+      ok: Video;
+    });
+  getAllSubjects: () -> (vec Subject) query;
+  getAllVideos: () -> (vec Video) query;
+  getLogoUrl: () -> (text) query;
+  getSubjectById: (id: nat) -> (opt Subject) query;
+  getSubjectsByBatch: (batchType: text) -> (vec Subject) query;
+  getVideoById: (id: nat) -> (opt Video) query;
+  getVideosBySubject: (subjectId: nat) -> (vec Video) query;
+  setLogoUrl: (token: text, url: text) -> (variant {
+                                             err: text;
+                                             ok;
+                                           });
+  verifyToken: (token: text) -> (bool) query;
+}
