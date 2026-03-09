@@ -62,8 +62,10 @@ import { toast } from "sonner";
 
 function useAdminToken() {
   const navigate = useNavigate();
-  const { actor } = useActor();
-  const [token, setToken] = useState<string | null>(null);
+  const { actor, isFetching } = useActor();
+  const [token, setToken] = useState<string | null>(() =>
+    localStorage.getItem("mj_admin_token"),
+  );
   const [isVerifying, setIsVerifying] = useState(true);
 
   useEffect(() => {
@@ -73,7 +75,14 @@ function useAdminToken() {
       return;
     }
 
-    if (!actor) return;
+    // If actor is still loading, keep token from localStorage and stop spinner
+    if (!actor) {
+      if (!isFetching) {
+        // Actor failed to load — allow access with stored token
+        setIsVerifying(false);
+      }
+      return;
+    }
 
     actor
       .verifyToken(stored)
@@ -82,6 +91,7 @@ function useAdminToken() {
           setToken(stored);
         } else {
           localStorage.removeItem("mj_admin_token");
+          setToken(null);
           navigate({ to: "/admin/login" });
         }
       })
@@ -92,9 +102,9 @@ function useAdminToken() {
       .finally(() => {
         setIsVerifying(false);
       });
-  }, [actor, navigate]);
+  }, [actor, isFetching, navigate]);
 
-  return { token, isVerifying };
+  return { token, isVerifying: isVerifying && isFetching && !token };
 }
 
 // ── Logo Manager ──────────────────────────────────────────────────────────────
@@ -959,7 +969,7 @@ function BatchManager({
 export default function AdminDashboard() {
   const { token, isVerifying } = useAdminToken();
 
-  if (isVerifying || !token) {
+  if (!token) {
     return (
       <div
         className="min-h-screen flex items-center justify-center bg-background"
@@ -967,7 +977,9 @@ export default function AdminDashboard() {
       >
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 text-primary animate-spin" />
-          <p className="text-muted-foreground">Verifying admin access...</p>
+          <p className="text-muted-foreground">
+            {isVerifying ? "Verifying admin access..." : "Redirecting..."}
+          </p>
         </div>
       </div>
     );
