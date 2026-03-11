@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { createActorWithConfig } from "@/config";
 import { useActor } from "@/hooks/useActor";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Eye, EyeOff, Loader2, Lock, Shield } from "lucide-react";
@@ -10,7 +11,7 @@ import { toast } from "sonner";
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
-  const { actor, isFetching } = useActor();
+  const { actor: cachedActor } = useActor();
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -20,12 +21,13 @@ export default function AdminLoginPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!actor) return;
-
     setIsLoading(true);
     setError("");
 
     try {
+      // Use cached actor or create a fresh one directly so login never blocks
+      const actor = cachedActor ?? (await createActorWithConfig());
+
       const result = await (actor.adminLogin(username, password) as Promise<
         { ok: string } | { err: string }
       >);
@@ -48,7 +50,6 @@ export default function AdminLoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* Header */}
       <header className="border-b border-border py-4 px-6">
         <Link
           to="/"
@@ -67,7 +68,6 @@ export default function AdminLoginPage() {
         </Link>
       </header>
 
-      {/* Login Form */}
       <div className="flex-1 flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -75,12 +75,9 @@ export default function AdminLoginPage() {
           transition={{ duration: 0.5 }}
           className="w-full max-w-md"
         >
-          {/* Card */}
           <div className="relative bg-card rounded-2xl border border-border p-8 shadow-[0_0_50px_oklch(0.46_0.22_27/0.08)]">
-            {/* Top accent line */}
             <div className="absolute top-0 left-8 right-8 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full" />
 
-            {/* Icon */}
             <div className="flex justify-center mb-6">
               <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
                 <Shield className="h-8 w-8 text-primary" />
@@ -101,7 +98,6 @@ export default function AdminLoginPage() {
               data-ocid="admin.login_form"
               className="space-y-4"
             >
-              {/* Username */}
               <div className="space-y-1.5">
                 <Label htmlFor="username" className="text-sm font-medium">
                   Username
@@ -114,13 +110,12 @@ export default function AdminLoginPage() {
                   placeholder="Enter username"
                   required
                   autoComplete="username"
-                  disabled={isLoading || isFetching}
+                  disabled={isLoading}
                   className="bg-secondary/50 border-border focus:border-primary"
                   data-ocid="admin.input"
                 />
               </div>
 
-              {/* Password */}
               <div className="space-y-1.5">
                 <Label htmlFor="password" className="text-sm font-medium">
                   Password
@@ -134,7 +129,7 @@ export default function AdminLoginPage() {
                     placeholder="Enter password"
                     required
                     autoComplete="current-password"
-                    disabled={isLoading || isFetching}
+                    disabled={isLoading}
                     className="bg-secondary/50 border-border focus:border-primary pr-10"
                     data-ocid="admin.input"
                   />
@@ -153,7 +148,6 @@ export default function AdminLoginPage() {
                 </div>
               </div>
 
-              {/* Error */}
               {error && (
                 <motion.div
                   initial={{ opacity: 0, y: -5 }}
@@ -166,22 +160,16 @@ export default function AdminLoginPage() {
                 </motion.div>
               )}
 
-              {/* Submit */}
               <Button
                 type="submit"
-                disabled={isLoading || isFetching || !username || !password}
-                className="w-full bg-primary hover:bg-primary/90 text-white font-display font-bold mt-2 shadow-red-sm"
+                disabled={isLoading || !username || !password}
+                className="w-full bg-primary hover:bg-primary/90 text-white font-display font-bold mt-2"
                 data-ocid="admin.submit_button"
               >
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Authenticating...
-                  </>
-                ) : isFetching ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Connecting...
                   </>
                 ) : (
                   <>
@@ -199,7 +187,7 @@ export default function AdminLoginPage() {
               className="hover:text-foreground transition-colors"
               data-ocid="nav.link"
             >
-              ← Return to Mission Jeet
+              Return to Mission Jeet
             </Link>
           </p>
         </motion.div>

@@ -75,12 +75,12 @@ function useAdminToken() {
       return;
     }
 
-    // If actor is still loading, keep token from localStorage and stop spinner
+    // If actor not ready yet, wait
+    if (isFetching) return;
+
     if (!actor) {
-      if (!isFetching) {
-        // Actor failed to load — allow access with stored token
-        setIsVerifying(false);
-      }
+      // Actor unavailable but token exists — allow access with stored token
+      setIsVerifying(false);
       return;
     }
 
@@ -92,6 +92,7 @@ function useAdminToken() {
         } else {
           localStorage.removeItem("mj_admin_token");
           setToken(null);
+          toast.error("Session expired. Please log in again.");
           navigate({ to: "/admin/login" });
         }
       })
@@ -104,7 +105,7 @@ function useAdminToken() {
       });
   }, [actor, isFetching, navigate]);
 
-  return { token, isVerifying: isVerifying && isFetching && !token };
+  return { token, isVerifying: isVerifying && isFetching };
 }
 
 // ── Logo Manager ──────────────────────────────────────────────────────────────
@@ -969,7 +970,7 @@ function BatchManager({
 export default function AdminDashboard() {
   const { token, isVerifying } = useAdminToken();
 
-  if (!token) {
+  if (isVerifying || !token) {
     return (
       <div
         className="min-h-screen flex items-center justify-center bg-background"

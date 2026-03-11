@@ -1,5 +1,6 @@
 import { Toaster } from "@/components/ui/sonner";
 import {
+  Link,
   Outlet,
   RouterProvider,
   createHashHistory,
@@ -14,6 +15,24 @@ import LandingPage from "./pages/LandingPage";
 import SubjectPage from "./pages/SubjectPage";
 import VideoPlayerPage from "./pages/VideoPlayerPage";
 
+function NotFoundPage() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4 px-4 text-center">
+      <div className="font-display font-black text-7xl text-primary">404</div>
+      <h1 className="font-display font-bold text-2xl">Page Not Found</h1>
+      <p className="text-muted-foreground max-w-sm">
+        The page you're looking for doesn't exist or has been moved.
+      </p>
+      <Link
+        to="/"
+        className="mt-2 px-6 py-3 bg-primary text-white font-display font-bold rounded-lg hover:bg-primary/90 transition-colors"
+      >
+        Go Home
+      </Link>
+    </div>
+  );
+}
+
 const rootRoute = createRootRoute({
   component: () => (
     <>
@@ -21,6 +40,7 @@ const rootRoute = createRootRoute({
       <Toaster theme="dark" position="top-right" />
     </>
   ),
+  notFoundComponent: NotFoundPage,
 });
 
 const indexRoute = createRoute({
