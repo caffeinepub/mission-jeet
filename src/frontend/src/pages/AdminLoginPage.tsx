@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createActorWithConfig } from "@/config";
-import { useActor } from "@/hooks/useActor";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Eye, EyeOff, Loader2, Lock, Shield } from "lucide-react";
 import { motion } from "motion/react";
@@ -11,7 +10,6 @@ import { toast } from "sonner";
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
-  const { actor: cachedActor } = useActor();
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -24,28 +22,39 @@ export default function AdminLoginPage() {
     setIsLoading(true);
     setError("");
 
-    try {
-      // Use cached actor or create a fresh one directly so login never blocks
-      const actor = cachedActor ?? (await createActorWithConfig());
+    let lastError = "";
+    // Retry up to 3 times to handle transient connection issues
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const actor = await createActorWithConfig();
+        const result = await (actor.adminLogin(username, password) as Promise<
+          { ok: string } | { err: string }
+        >);
 
-      const result = await (actor.adminLogin(username, password) as Promise<
-        { ok: string } | { err: string }
-      >);
-
-      if ("ok" in result) {
-        localStorage.setItem("mj_admin_token", result.ok);
-        toast.success("Welcome back, Admin!");
-        navigate({ to: "/admin" });
-      } else {
-        setError(result.err || "Invalid credentials");
-        toast.error("Login failed");
+        if ("ok" in result) {
+          localStorage.setItem("mj_admin_token", result.ok);
+          toast.success("Welcome back, Admin!");
+          navigate({ to: "/admin" });
+          return;
+          // biome-ignore lint/style/noUselessElse: intentional
+        } else {
+          // Credential error — no point retrying
+          setError(result.err || "Invalid credentials");
+          toast.error("Login failed");
+          setIsLoading(false);
+          return;
+        }
+      } catch (err) {
+        lastError = err instanceof Error ? err.message : "Connection error";
+        if (attempt < 2) {
+          await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+        }
       }
-    } catch {
-      setError("Connection error. Please try again.");
-      toast.error("Connection error");
-    } finally {
-      setIsLoading(false);
     }
+
+    setError("Connection error. Please try again.");
+    toast.error(lastError || "Connection error");
+    setIsLoading(false);
   };
 
   return (
@@ -169,7 +178,7 @@ export default function AdminLoginPage() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Authenticating...
+                    Connecting...
                   </>
                 ) : (
                   <>
